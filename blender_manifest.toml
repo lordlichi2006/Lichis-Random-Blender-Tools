@@ -1,21 +1,20 @@
 schema_version = "1.0.0"
 
 id = "simplecleanuptools"
-version = "1.0.0"
-name = "Simple Cleanup Tools"
-tagline = "Tools that help with tedious tasks"
-maintainer = "LordLichi2006"
+version = "1.1.0"
+name = "Lichi's Random Tools"
+tagline = "Tools AI Mostly Made To Solve Tedious Tasks I Had"
+maintainer = "Lichi"
 type = "add-on"
 website = "https://github.com/lordlichi2006/"
-tags = ["Cleanup", "Tools"]
+tags = ["Tools"]
 
-blender_version_min = "4.2.0"
+blender_version_min = "4.5.0"
 
 license = [
   "MIT",
 ] 
 
 copyright = [
-   "2025 LordLichi2006",
+   "2025 Lichi",
 ]
-[permissions]
