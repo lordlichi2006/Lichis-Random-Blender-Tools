@@ -116,7 +116,7 @@ class TOOL_PT_custom_tools(bpy.types.Panel):
     bl_idname = "TOOL_PT_custom_tools"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Cleanup Tools"
+    bl_category = "Lichi's Tools"
 
     def draw(self, context):
         layout = self.layout
