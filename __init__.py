@@ -87,7 +87,19 @@ class SCENE_OT_clear_orphans(bpy.types.Operator):
         self.report({'INFO'}, "Orphan data cleared")
         return {'FINISHED'}
 
+class SCENE_OT_render_visible_vieweport(bpy.types.Operator):
 
+    bl_idname = "scene.render_visible_vieweport"
+    bl_label = "Set Render Visibility From Viewport"
+    bl_description = "Sets the render visibility based on the objects' visibility in the current viewport"
+
+    def execute(self,context):
+        for obj in bpy.context.scene.objects:
+            is_visible = obj.visible_get()
+            obj.hide_render = not is_visible
+        self.report({'INFO'}, "Render visibility updated from viewport visibility.")
+        return {'FINISHED'}
+    
 class MESH_OT_rename_uv_map(bpy.types.Operator):
     bl_idname = "mesh.rename_uv_map"
     bl_label = "Rename UV Map"
@@ -112,7 +124,7 @@ class MESH_OT_rename_uv_map(bpy.types.Operator):
 
 
 class TOOL_PT_custom_tools(bpy.types.Panel):
-    bl_label = "Lichi's Random Tools [1.1]"
+    bl_label = "Lichi's Random Tools [1.2]"
     bl_idname = "TOOL_PT_custom_tools"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -135,8 +147,9 @@ class TOOL_PT_custom_tools(bpy.types.Panel):
         row.prop(context.scene, "uv_rename_text", text="Set To")
         layout.operator("mesh.rename_uv_map", icon='GROUP_UVS')
 
-        layout.label(text="Other Tools :")
+        layout.label(text="Scene Tools :")
         layout.operator("scene.clear_orphans", icon='ORPHAN_DATA')
+        layout.operator("scene.render_visible_vieweport",icon='RESTRICT_RENDER_OFF')
 
 
 classes = (
@@ -145,6 +158,7 @@ classes = (
     MESH_OT_rename_mesh_data,
     MESH_OT_rename_uv_map,
     SCENE_OT_clear_orphans,
+    SCENE_OT_render_visible_vieweport,
     TOOL_PT_custom_tools,
 )
 
@@ -153,9 +167,9 @@ def register():
         bpy.utils.register_class(cls)
     
     bpy.types.Scene.cleanup_selected_only = bpy.props.BoolProperty(
-        name="Apply Only On Selected Objects",
-        description="Only apply cleanup to selected object(s)",
-        default=False
+        name="Affect Selected Objects Only",
+        description="Applies only to the objects currently selected in the viewport. Does not affect the Clear Orphan Data function.",
+        default=True
     )
     bpy.types.Scene.uv_rename_index = bpy.props.IntProperty(
         name="UV Index",

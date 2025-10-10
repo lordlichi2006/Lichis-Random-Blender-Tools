@@ -1,9 +1,9 @@
 schema_version = "1.0.0"
 
 id = "simplecleanuptools"
-version = "1.1.0"
+version = "1.2.0"
 name = "Lichi's Random Tools"
-tagline = "Tools AI Mostly Made To Solve Tedious Tasks I Had"
+tagline = "Some Tools that i needed for my workflow that AI helped me with, packaged into an addon :p"
 maintainer = "Lichi"
 type = "add-on"
 website = "https://github.com/lordlichi2006/"
