@@ -11,7 +11,8 @@ bl_info = {
 }
 
 
-import bpy # type: ignore
+import bpy, bmesh # type: ignore
+
 
 class MATERIAL_cleanUnused(bpy.types.Operator):
     bl_idname = "material.clean_unused"
@@ -62,6 +63,34 @@ class MATERIAL_renameClones(bpy.types.Operator):
                         replaced_count += 1
 
         self.report({'INFO'}, f"Replaced {replaced_count} clone material reference(s)")
+        return {'FINISHED'}
+
+class MESH_measure_edges(bpy.types.Operator):
+    bl_idname = "mesh.measure_edges"
+    bl_label = "Measure Selected Edges"
+    bl_description = "Takes the currently selected edges and returns the total length of them"
+
+    def execute(self, context):
+        obj = bpy.context.object
+        bm = bmesh.from_edit_mesh(obj.data)
+        total = sum(e.calc_length() for e in bm.edges if e.select)
+
+        unit_symbols = {
+            'METERS': 'm',
+            'CENTIMETERS': 'cm',
+            'MILLIMETERS': 'mm',
+            'KILOMETERS': 'km',
+            'FEET': 'ft',
+            'INCHES': 'in',
+            'THOU': 'thou',
+            'MILES': 'mi',
+        }
+        unit_name = context.scene.unit_settings.length_unit
+        symbol = unit_symbols.get(unit_name, 'm')  # fallback to 'm'
+
+        context.scene.measure_result = f"{total:.4f}"
+        self.report({'INFO'}, f"Selected Edges Measure  {total:.4f} {symbol} ")
+
         return {'FINISHED'}
 
 
@@ -206,6 +235,11 @@ class PANEL_toolPanel(bpy.types.Panel):
         layout.operator("mesh.rename_mesh_data", icon='OUTLINER_OB_MESH')
 
         row = layout.row(align=True)
+        row.operator("mesh.measure_edges", icon='DRIVER_DISTANCE')
+        row.scale_x = 0.35 
+        row.prop(context.scene, "measure_result")  # renders as a copyable text box
+
+        row = layout.row(align=True)
         row.operator("mesh.reset_vert_color", icon='COLOR')
         row.scale_x = 0.35 
         row.prop(context.scene, "vert_color_picker")
@@ -228,6 +262,7 @@ classes = (
     MATERIAL_renameClones,
     MESH_renameMeshData,
     MESH_renameUVMaps,
+    MESH_measure_edges,
     MESH_overrideVertCol,
     SCENE_clearOrhpans,
     SCENE_setRenderToVisible,
@@ -254,7 +289,6 @@ def register():
         description="New name for the selected UV map",
         default="UVMap"
     )
-    # Register the color property on the scene
     bpy.types.Scene.vert_color_picker = bpy.props.FloatVectorProperty(
         name="",
         subtype='COLOR',
@@ -263,6 +297,8 @@ def register():
         max=1.0,
         size=4  # RGBA
     )
+    bpy.types.Scene.measure_result = bpy.props.StringProperty(name="")
+
 
 def unregister():
     for cls in reversed(classes):
@@ -273,6 +309,7 @@ def unregister():
         del bpy.types.Scene.uv_rename_index
         del bpy.types.Scene.uv_rename_text
         del bpy.types.Scene.vert_color_picker
+        del bpy.types.Scene.measure_result
     except:
         pass
 
