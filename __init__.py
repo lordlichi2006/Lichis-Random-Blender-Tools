@@ -26,22 +26,10 @@ class MATERIAL_cleanUnused(bpy.types.Operator):
 
         for obj in objs:
             if obj.type == 'MESH' and obj.data.materials:
-                # Collect indices of materials actually used by polygons
-                used_indices = {poly.material_index for poly in obj.data.polygons}
-                total_slots = len(obj.material_slots)
-
-                # Rebuild material list keeping only used ones
-                used_materials = [
-                    slot.material for i, slot in enumerate(obj.material_slots)
-                    if i in used_indices
-                ]
-
-                # If something was removed, rebuild the material slots
-                if len(used_materials) < total_slots:
-                    obj.data.materials.clear()
-                    for mat in used_materials:
-                        obj.data.materials.append(mat)
-                    removed_count += total_slots - len(used_materials)
+                with context.temp_override(active_object=obj):
+                    before = len(obj.material_slots)
+                    bpy.ops.object.material_slot_remove_unused()
+                    removed_count += before - len(obj.material_slots)
 
         self.report({'INFO'}, f"Removed {removed_count} unused material slot(s)")
         return {'FINISHED'}
