@@ -180,7 +180,7 @@ class MESH_renameUVMaps(bpy.types.Operator):
 
 class SCENE_purgeUnusedData(bpy.types.Operator):
     bl_idname = "scene.purge_unused_data"
-    bl_label = "Clear Orphan Data"
+    bl_label = "Purge Unused Data"
     bl_description = "Clear all orphan data-blocks without any users from the file. Performs the same action as the Purge button in the Outliner (Orphan Data mode)"
 
     def execute(self, context):
@@ -322,7 +322,7 @@ class PANEL_toolPanel(bpy.types.Panel):
 
         # Scene Tools
         layout.label(text="Scene Tools :")
-        layout.operator("scene.purge_unused_data", icon='ORPHAN_DATA')
+        layout.operator("scene.purge_unused_data", icon='TRASH')
         layout.operator("scene.set_render_to_visible",icon='RESTRICT_RENDER_OFF')
 
         # Image Tools
