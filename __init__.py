@@ -11,7 +11,7 @@ bl_info = {
 }
 
 
-import bpy, bmesh # type: ignore
+import bpy, bmesh, re # type: ignore
 
 
 class MATERIAL_cleanUnused(bpy.types.Operator):
@@ -65,7 +65,7 @@ class MATERIAL_renameClones(bpy.types.Operator):
         self.report({'INFO'}, f"Replaced {replaced_count} clone material reference(s)")
         return {'FINISHED'}
 
-class MESH_measure_edges(bpy.types.Operator):
+class MESH_measureEdges(bpy.types.Operator):
     bl_idname = "mesh.measure_edges"
     bl_label = "Measure Selected Edges"
     bl_description = "Takes the currently selected edges and returns the total length of them"
@@ -113,7 +113,7 @@ class MESH_renameMeshData(bpy.types.Operator):
         return {'FINISHED'}
 
 class MESH_overrideVertCol(bpy.types.Operator):
-    bl_idname = "mesh.reset_vert_color"
+    bl_idname = "mesh.override_vert_col"
     bl_label = "Override Vertex Color"
     bl_description = "Removes any existing vertex colors, and replaces it with a vertex color in Face Corner Byte Color format with the selected color."
 
@@ -156,7 +156,7 @@ class MESH_overrideVertCol(bpy.types.Operator):
         return {'FINISHED'}
 
 class MESH_renameUVMaps(bpy.types.Operator):
-    bl_idname = "mesh.rename_uv_map"
+    bl_idname = "mesh.rename_uv_maps"
     bl_label = "Rename UV Map"
     bl_description = "Renames a specific UV map (by index) to a given name"
 
@@ -178,8 +178,8 @@ class MESH_renameUVMaps(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SCENE_clearOrhpans(bpy.types.Operator):
-    bl_idname = "scene.clear_orphans"
+class SCENE_purgeUnusedData(bpy.types.Operator):
+    bl_idname = "scene.purge_unused_data"
     bl_label = "Clear Orphan Data"
     bl_description = "Clear all orphan data-blocks without any users from the file. Performs the same action as the Purge button in the Outliner (Orphan Data mode)"
 
@@ -190,7 +190,7 @@ class SCENE_clearOrhpans(bpy.types.Operator):
 
 class SCENE_setRenderToVisible(bpy.types.Operator):
 
-    bl_idname = "scene.render_visible_vieweport"
+    bl_idname = "scene.set_render_to_visible"
     bl_label = "Viewport to Render Visibility"
     bl_description = "Sets the render visibility based on the objects' visibility in the current viewport"
 
@@ -205,9 +205,74 @@ class SCENE_setRenderToVisible(bpy.types.Operator):
             change_count += 1
         self.report({'INFO'}, f"Render visibility updated from viewport visibility on {change_count} Object(s).")
         return {'FINISHED'}
-    
+
+class IMAGE_removeDuplicates(bpy.types.Operator):
+    bl_idname = "image.remove_duplicates"
+    bl_label = "Merge Duplicate Images"
+    bl_description = "Merges all duplicate images so only the original is left, does not break materials that use the duplicates."
+    def execute(self,context):
+
+        def imageIsDuplicate(thisImage, otherImage):
+            if not thisImage or not otherImage:
+                return False # bro forgot to pass another image to compare to :wilted_rose:
+            if thisImage.size[:] != otherImage.size[:]:
+                return False  # early exit before the expensive pixel check
+            
+            channels   = thisImage.channels == otherImage.channels
+            depth      = thisImage.depth == otherImage.depth
+            resolution = thisImage.resolution[:] == otherImage.resolution[:]
+            pixels     = list(thisImage.pixels) == list(otherImage.pixels)
+            
+            return channels and depth and resolution and pixels
+        
+        removedDuplicates = 0
+
+        for image in list(bpy.data.images):
+            possibleDuplicate = re.search(r"\.\d{3}$", image.name)
+
+            if not possibleDuplicate:
+                continue #  skip to next if there is no duplicate
+            
+            originalName = re.sub(r"\.\d{3}$", "", image.name)
+            originalImage = bpy.data.images.get(originalName)
+            
+            if not originalImage:
+                # Incase the user somehow has a .001 duplicate without an original image
+                image.name = originalName
+                continue
+            
+            # could be .001 but be different data
+            duplicate = imageIsDuplicate(image,originalImage)
+            
+            if duplicate:
+                # Replace all uses of the duplicate with the original
+                image.user_remap(originalImage)
+                bpy.data.images.remove(image)
+                removedDuplicates +=1
+
+        self.report({'INFO'}, f"Merged {removedDuplicates} duplicate image(s).")
+        return {'FINISHED'}
+
+class IMAGE_removeMissing(bpy.types.Operator):
+    bl_idname = "image.remove_missing"
+    bl_label = "Remove Missing Images"
+    bl_description = "Removes all images that have no data (Missing textures)."
+    def execute(self,context):
+        removedEmpty = 0
+
+        for image in list(bpy.data.images):
+            if not image.has_data and image.size[0] == 0:
+                bpy.data.images.remove(image)
+                removedEmpty +=1
+
+        self.report({'INFO'}, f"Removed {removedEmpty} missing images.")
+        return {'FINISHED'}
+
+
+
 class PANEL_toolPanel(bpy.types.Panel):
-    bl_label = "Lichi's Random Tools [1.3]"
+    
+    bl_label = "Lichi's Random Tools [1.4]"
     bl_idname = "PANEL_toolPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -223,7 +288,11 @@ class PANEL_toolPanel(bpy.types.Panel):
         box.alert = True
         box.scale_y = 0.5 # make box padding
         box.label(text="This setting does not affect:") 
-        box.label(text="Clear Orphan Data ", icon='ORPHAN_DATA')
+        box.label(text="Purge Unused Data", icon='TRASH')
+        box.label(text="Merge Duplicate Images", icon='DUPLICATE')
+        box.label(text="Remove Missing Images", icon='BORDERMOVE')
+
+
 
         # Material Tools
         layout.label(text="Material Tools :")
@@ -240,7 +309,7 @@ class PANEL_toolPanel(bpy.types.Panel):
         row.prop(context.scene, "measure_result")  # renders as a copyable text box
 
         row = layout.row(align=True)
-        row.operator("mesh.reset_vert_color", icon='COLOR')
+        row.operator("mesh.override_vert_col", icon='COLOR')
         row.scale_x = 0.35 
         row.prop(context.scene, "vert_color_picker")
 
@@ -249,12 +318,18 @@ class PANEL_toolPanel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(context.scene, "uv_rename_index", text="UV Index")
         row.prop(context.scene, "uv_rename_text", text="Set To")
-        layout.operator("mesh.rename_uv_map", icon='GROUP_UVS')
+        layout.operator("mesh.rename_uv_maps", icon='GROUP_UVS')
 
         # Scene Tools
         layout.label(text="Scene Tools :")
-        layout.operator("scene.clear_orphans", icon='ORPHAN_DATA')
-        layout.operator("scene.render_visible_vieweport",icon='RESTRICT_RENDER_OFF')
+        layout.operator("scene.purge_unused_data", icon='ORPHAN_DATA')
+        layout.operator("scene.set_render_to_visible",icon='RESTRICT_RENDER_OFF')
+
+        # Image Tools
+        layout.label(text="Image Tools :")
+        layout.operator("image.remove_duplicates",icon='DUPLICATE')
+        layout.operator("image.remove_missing",icon='BORDERMOVE')
+
 
 
 classes = (
@@ -262,10 +337,12 @@ classes = (
     MATERIAL_renameClones,
     MESH_renameMeshData,
     MESH_renameUVMaps,
-    MESH_measure_edges,
+    MESH_measureEdges,
     MESH_overrideVertCol,
-    SCENE_clearOrhpans,
+    SCENE_purgeUnusedData,
     SCENE_setRenderToVisible,
+    IMAGE_removeDuplicates,
+    IMAGE_removeMissing,
     PANEL_toolPanel,
 )
 
