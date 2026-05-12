@@ -4,6 +4,7 @@ A Blender addon that speeds up my workflow (Mainly related to BeamNG.Drive moddi
 
 Mainly coded by AI :C , i dont like that but it works for me and it might help someone else so.
 >Im finally starting to Learn Python so i can code most of the stuff myself and use less AI ^-^
+> all of the stuff in V1.4 is now coded by myself, only with some AI for small questions :p
 
 Im not sure if all of the tools have an actual impact on performance, but it does make my scene prettier :p
  
