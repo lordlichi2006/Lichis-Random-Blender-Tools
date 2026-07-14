@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Lichi's Random Tools",
     "author": "Lichi",
-    "version": (1, 3, 0),
+    "version": (1, 5, 0),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > Lichi",
     "description": "Some tools that I needed for my workflow that AI helped me with, packaged into an addon :p",
@@ -206,6 +206,50 @@ class SCENE_setRenderToVisible(bpy.types.Operator):
         self.report({'INFO'}, f"Render visibility updated from viewport visibility on {change_count} Object(s).")
         return {'FINISHED'}
 
+class CAMERA_cyclePrevCamera(bpy.types.Operator):
+
+    bl_idname = "camera.cycle_prev_camera"
+    bl_label = ""
+    bl_description = "Switches to the previous camera."
+
+    def execute(self, context):
+        scene = context.scene
+        cam_objects = [obj for obj in scene.objects if obj.type == 'CAMERA']
+
+        if not cam_objects:
+            return {'CANCELLED'}
+
+        if scene.current_camera > 0:
+            scene.current_camera = scene.current_camera - 1
+        else:
+            scene.current_camera = len(cam_objects) - 1
+
+        scene.camera = cam_objects[scene.current_camera]
+
+        return {'FINISHED'}
+
+class CAMERA_cycleNextCamera(bpy.types.Operator):
+    bl_idname = "camera.cycle_next_camera"
+    bl_label = ""
+    bl_description = "Switches to the next camera."
+
+    def execute(self, context):
+        scene = context.scene
+        cam_objects = [obj for obj in scene.objects if obj.type == 'CAMERA']
+
+        if not cam_objects:
+            return {'CANCELLED'}
+
+        if scene.current_camera < len(cam_objects) - 1:
+            scene.current_camera = scene.current_camera + 1
+        else:
+            scene.current_camera = 0
+
+        scene.camera = cam_objects[scene.current_camera]
+
+        return {'FINISHED'}
+
+
 class IMAGE_removeDuplicates(bpy.types.Operator):
     bl_idname = "image.remove_duplicates"
     bl_label = "Merge Duplicate Images"
@@ -272,7 +316,7 @@ class IMAGE_removeMissing(bpy.types.Operator):
 
 class PANEL_toolPanel(bpy.types.Panel):
     
-    bl_label = "Lichi's Random Tools [1.4]"
+    bl_label = "Lichi's Random Tools [1.5]"
     bl_idname = "PANEL_toolPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -280,17 +324,26 @@ class PANEL_toolPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        
+        scene = context.scene
         # Affect Selected only Section
-        layout.prop(context.scene, "cleanup_selected_only")
+        layout.prop(scene, "cleanup_selected_only")
 
-        box = layout.box()
-        box.alert = True
-        box.scale_y = 0.5 # make box padding
-        box.label(text="This setting does not affect:") 
-        box.label(text="Purge Unused Data", icon='TRASH')
-        box.label(text="Merge Duplicate Images", icon='DUPLICATE')
-        box.label(text="Remove Missing Images", icon='BORDERMOVE')
+        row = layout.row()
+        row.prop(
+            scene, "show_warning_box",
+            icon='TRIA_DOWN' if scene.show_warning_box else 'TRIA_RIGHT',
+            icon_only=True, emboss=False,
+            text="Does Not Affect:"
+        )
+
+        if scene.show_warning_box:
+            box = layout.box()
+            box.alert = True
+            box.scale_y = 0.5
+            box.label(text="Purge Unused Data", icon='TRASH')
+            box.label(text="Merge Duplicate Images", icon='DUPLICATE')
+            box.label(text="Remove Missing Images", icon='BORDERMOVE')
+            box.label(text="Camera Switcher", icon='VIEW_CAMERA_UNSELECTED')
 
 
 
@@ -306,24 +359,36 @@ class PANEL_toolPanel(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator("mesh.measure_edges", icon='DRIVER_DISTANCE')
         row.scale_x = 0.35 
-        row.prop(context.scene, "measure_result")  # renders as a copyable text box
+        row.prop(scene, "measure_result")  # renders as a copyable text box
 
         row = layout.row(align=True)
         row.operator("mesh.override_vert_col", icon='COLOR')
         row.scale_x = 0.35 
-        row.prop(context.scene, "vert_color_picker")
+        row.prop(scene, "vert_color_picker")
 
         # UV Renamer
         layout.label(text="UV Renamer :")
         row = layout.row(align=True)
-        row.prop(context.scene, "uv_rename_index", text="UV Index")
-        row.prop(context.scene, "uv_rename_text", text="Set To")
+        row.prop(scene, "uv_rename_index", text="UV Index")
+        row.prop(scene, "uv_rename_text", text="Set To")
         layout.operator("mesh.rename_uv_maps", icon='GROUP_UVS')
 
         # Scene Tools
         layout.label(text="Scene Tools :")
         layout.operator("scene.purge_unused_data", icon='TRASH')
         layout.operator("scene.set_render_to_visible",icon='RESTRICT_RENDER_OFF')
+
+        # Cycle cameras
+        layout.label(text="Cycle Cameras:")
+
+        row = layout.row(align=True)
+        row.operator("camera.cycle_prev_camera", icon='TRIA_LEFT', text="")
+      
+        sub = row.row()
+        sub.alignment = 'CENTER'
+        sub.label(text=scene.camera.name if scene.camera else "No Camera")
+
+        row.operator("camera.cycle_next_camera", icon='TRIA_RIGHT', text="")
 
         # Image Tools
         layout.label(text="Image Tools :")
@@ -341,6 +406,8 @@ classes = (
     MESH_overrideVertCol,
     SCENE_purgeUnusedData,
     SCENE_setRenderToVisible,
+    CAMERA_cycleNextCamera,
+    CAMERA_cyclePrevCamera,
     IMAGE_removeDuplicates,
     IMAGE_removeMissing,
     PANEL_toolPanel,
@@ -351,8 +418,8 @@ def register():
         bpy.utils.register_class(cls)
     
     bpy.types.Scene.cleanup_selected_only = bpy.props.BoolProperty(
-        name="Affect Selected Objects Only",
-        description="Applies only to the objects currently selected in the viewport. Does not affect the Clear Orphan Data function.",
+        name="Selected Objects Only",
+        description="Limit cleanup to objects currently selected in the viewport",
         default=True
     )
     bpy.types.Scene.uv_rename_index = bpy.props.IntProperty(
@@ -374,7 +441,13 @@ def register():
         max=1.0,
         size=4  # RGBA
     )
+    bpy.types.Scene.show_warning_box = bpy.props.BoolProperty(
+        name="Show Warning Box",
+        default=True
+    )
+
     bpy.types.Scene.measure_result = bpy.props.StringProperty(name="")
+    bpy.types.Scene.current_camera = bpy.props.IntProperty(default=0)
 
 
 def unregister():
@@ -387,6 +460,8 @@ def unregister():
         del bpy.types.Scene.uv_rename_text
         del bpy.types.Scene.vert_color_picker
         del bpy.types.Scene.measure_result
+        del bpy.types.Scene.current_camera
+        del bpy.types.Scene.show_warning_box
     except:
         pass
 
