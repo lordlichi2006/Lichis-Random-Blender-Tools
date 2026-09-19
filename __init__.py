@@ -71,25 +71,52 @@ class MESH_measureEdges(bpy.types.Operator):
     bl_description = "Takes the currently selected edges and returns the total length of them"
 
     def execute(self, context):
+        if context.mode != 'EDIT_MESH':
+            self.report({'WARNING'}, "Measure Edges only works in Edit Mode")
+            return {'CANCELLED'}
+
         obj = bpy.context.object
         bm = bmesh.from_edit_mesh(obj.data)
         total = sum(e.calc_length() for e in bm.edges if e.select)
 
-        unit_symbols = {
-            'METERS': 'm',
-            'CENTIMETERS': 'cm',
-            'MILLIMETERS': 'mm',
-            'KILOMETERS': 'km',
-            'FEET': 'ft',
-            'INCHES': 'in',
-            'THOU': 'thou',
-            'MILES': 'mi',
-        }
-        unit_name = context.scene.unit_settings.length_unit
-        symbol = unit_symbols.get(unit_name, 'm')  # fallback to 'm'
+        scene_unit_system = context.scene.unit_settings.system
+        unit_to_display = scene_unit_system if scene_unit_system != 'NONE' else 'METRIC'
+        display_str = bpy.utils.units.to_string(
+            unit_to_display,
+            'LENGTH',
+            total,
+            precision=4
+        )
 
         context.scene.measure_result = f"{total:.4f}"
-        self.report({'INFO'}, f"Selected Edges Measure  {total:.4f} {symbol} ")
+        self.report({'INFO'}, f"Selected Edges Measure  {display_str}")
+
+        return {'FINISHED'}
+
+class MESH_getVertexWeght(bpy.types.Operator):
+    bl_idname = "mesh.get_vertex_weight"
+    bl_label = "Get Vertex Weight"
+    bl_description = "Takes the currently selected vertice and returns the vertex weight value of it"
+
+    def execute(self, context):
+        if context.mode != 'EDIT_MESH':
+            self.report({'WARNING'}, "Get Vertex Weight only works in Edit Mode")
+            return {'CANCELLED'}
+        obj = bpy.context.object
+        bm = bmesh.from_edit_mesh(obj.data)
+        total = sum(e.calc_length() for e in bm.edges if e.select)
+
+        scene_unit_system = context.scene.unit_settings.system
+        unit_to_display = scene_unit_system if scene_unit_system != 'NONE' else 'METRIC'
+        display_str = bpy.utils.units.to_string(
+            unit_to_display,
+            'LENGTH',
+            total,
+            precision=4
+        )
+
+        context.scene.measure_result = f"{total:.4f}"
+        self.report({'INFO'}, f"Selected Edges Measure  {display_str}")
 
         return {'FINISHED'}
 

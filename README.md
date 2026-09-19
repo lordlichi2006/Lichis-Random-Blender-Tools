@@ -36,7 +36,7 @@ Use the ```Affect Selected Objects Only``` checkbox incase you have many objects
 
 ### Image Tools
 - **Merge Duplicate Images**: Merges all .00X images into one so you dont have duplicates of them wasting space, it  checks if they are the same image data, not just by name.
-- **Remove Missing Images**: Removes all missing images, the ones that appear as purple in the vieweport, so you can reopen them again without creating duplicates (Reopen them again, clean missing then merge duplicates, this is what i personally do)
+- **Remove Missing Images**: Removes all missing images, the ones that appear as purple in the vieweport, so you can reopen them again without creating duplicates (Reopen them again, then clean missing and merge duplicates, this is what i personally do)
 
 ## Warning
 
